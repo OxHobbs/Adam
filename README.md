@@ -24,6 +24,10 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+### v0.2.0
+
+* Added the ability to specify which subscription the VMs and LA workspace exists.
+
 ### v0.1.0
 
 * Initial implementation

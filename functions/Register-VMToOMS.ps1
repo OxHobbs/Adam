@@ -14,6 +14,9 @@ The name of the OMS/Log Analytics workspace that the VM will be registered to.
 .PARAMETER OMSResourceGroupName
 The name of the resource group that the OMS workspace resides.
 
+.PARAMETER SubsriptionName
+Specify the name of an alternate subscription in which the VMs and Log Analytics workspace exists.
+
 .EXAMPLE
 This example shows collecting all VMs in a resource group called 'myRG' and registering them to an OMS workspace.
 
@@ -42,7 +45,11 @@ function Register-VMToOMS
 
         [Parameter(Mandatory)]
         [String]
-        $OMSResourceGroupName
+        $OMSResourceGroupName,
+
+        [Parameter()]
+        [String]
+        $SubscriptionName
     )
 
     Begin {}
@@ -53,6 +60,18 @@ function Register-VMToOMS
         {
             if ($vm.OSProfile.WindowsConfiguration) { Write-Verbose "VM is Windows"; return 'windows' }
             elseif ($vm.OSProfile.LinuxConfiguration) { Write-Verbose "VM is linux"; return 'linux' }
+        }
+
+        if ($SubscriptionName)
+        {
+            Write-Verbose "Selecting the subscription named $SubscriptionName"
+            $sub = Get-AzureRmSubscription -SubscriptionName $SubscriptionName
+            $null = Select-AzureRmSubscription -SubscriptionObject $sub
+        }
+        else
+        {
+            $context = Get-AzureRmContext
+            Write-Verbose "Using the subscription named $($context.Subscription.Name)"
         }
 
         $workspace = Get-AzureRmOperationalInsightsWorkspace -Name $OMSWorkspaceName -ResourceGroupName $OMSResourceGroupName -ErrorAction Stop
