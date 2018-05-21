@@ -14,8 +14,13 @@ The name of the OMS/Log Analytics workspace that the VM will be registered to.
 .PARAMETER OMSResourceGroupName
 The name of the resource group that the OMS workspace resides.
 
-.PARAMETER SubsriptionName
-Specify the name of an alternate subscription in which the VMs and Log Analytics workspace exists.
+.PARAMETER VMSubsriptionName
+Specify the name of the subscription in which the VMs exist.  By default this will be set to the context of the user or app that is executing the cmdlet.
+This is used when onboarding VMs in a subscription different from what the user is currently logged into.
+
+.PARAMETER OMSSubscriptionName
+The name of the subscription in which the OMS/LA workspace exists.  By default this will be set to the same subscription as the hosting VM subscription.
+This is used when onboarding VMs in a different subscription from the OMS/LA workspace.
 
 .EXAMPLE
 This example shows collecting all VMs in a resource group called 'myRG' and registering them to an OMS workspace.
@@ -27,6 +32,11 @@ This example shows retrieving a VM and then registering it.
 
 $vm = Get-AzureRmVM -ResourceGroupName 'myRG' -Name 'Front-End-01'
 Register-VMToOMS -VM $vm -OMSWorkspaceName 'myOMSWorkspace' -OMSResourceGroupName 'myRG'
+
+.EXAMPLE
+This example shows onboarding VMs to a Log Analytics workspace that exists in a different subscription.
+
+Get-AzureRmVM -ResourceGroupName 'myRG' | Register-VMToOMS -OMSWorkspaceName 'myOMSWorkspace' -OMSResourceGroup 'myOMSRg' -OMSSubscriptionName 'myOMSSub' -Verbose
 #>
 
 function Register-VMToOMS
@@ -49,7 +59,11 @@ function Register-VMToOMS
 
         [Parameter()]
         [String]
-        $SubscriptionName
+        $VMSubscriptionName,
+
+        [Parameter()]
+        [String]
+        $OMSSubscriptionName
     )
 
     Begin {}
@@ -62,7 +76,7 @@ function Register-VMToOMS
             elseif ($vm.OSProfile.LinuxConfiguration) { Write-Verbose "VM is linux"; return 'linux' }
         }
 
-        if ($SubscriptionName)
+        if ($VMSubscriptionName)
         {
             Write-Verbose "Selecting the subscription named $SubscriptionName"
             $sub = Get-AzureRmSubscription -SubscriptionName $SubscriptionName
@@ -71,11 +85,18 @@ function Register-VMToOMS
         else
         {
             $context = Get-AzureRmContext
+            $VMSubscriptionName = $context.Subscription.Name
             Write-Verbose "Using the subscription named $($context.Subscription.Name)"
         }
 
-        $workspace = Get-AzureRmOperationalInsightsWorkspace -Name $OMSWorkspaceName -ResourceGroupName $OMSResourceGroupName -ErrorAction Stop
-        $key = (Get-AzureRmOperationalInsightsWorkspaceSharedKeys -ResourceGroupName $OMSResourceGroupName -Name $OMSWorkspaceName).PrimarySharedKey 
+        if (-not $OMSSubscriptionName)
+        { 
+            Write-Verbose "No OMSSubscription specified, using VMSubscriptionName ($VMSubscriptionName)"
+            $OMSSubscriptionName = $VMSubscriptionName 
+        }
+
+        $workspace = Get-Workspace -Name $OMSWorkspaceName -ResourceGroupName $OMSResourceGroupName -SubscriptionName $OMSSubscriptionName
+        $key = Get-WorkspaceKey -ResourceGroupName $OMSResourceGroupName -WorkspaceName $OMSWorkspaceName -SubscriptionName $OMSSubscriptionName
 
         $params = @{
             VMName = $vm.Name
