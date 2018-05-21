@@ -1,6 +1,6 @@
 Function Get-WorkspaceKey
 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $false)]
 
     param
     (

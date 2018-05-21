@@ -1,6 +1,6 @@
 Function Get-Workspace
 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $false)]
 
     param
     (

@@ -66,16 +66,8 @@ function Register-VMToOMS
         $OMSSubscriptionName
     )
 
-    Begin {}
-
-    Process
+    Begin 
     {
-        function GetOSType($VM)
-        {
-            if ($vm.OSProfile.WindowsConfiguration) { Write-Verbose "VM is Windows"; return 'windows' }
-            elseif ($vm.OSProfile.LinuxConfiguration) { Write-Verbose "VM is linux"; return 'linux' }
-        }
-
         if ($VMSubscriptionName)
         {
             Write-Verbose "Selecting the subscription named $SubscriptionName"
@@ -95,46 +87,44 @@ function Register-VMToOMS
             $OMSSubscriptionName = $VMSubscriptionName 
         }
 
-        $workspace = Get-Workspace -Name $OMSWorkspaceName -ResourceGroupName $OMSResourceGroupName -SubscriptionName $OMSSubscriptionName
-        $key = Get-WorkspaceKey -ResourceGroupName $OMSResourceGroupName -WorkspaceName $OMSWorkspaceName -SubscriptionName $OMSSubscriptionName
-
-        $params = @{
-            VMName = $vm.Name
-            ResourceGroupName = $vm.ResourceGroupName
-            Location = $vm.Location
-            Name = 'MicrosoftMonitoringAgent'
-            Publisher = 'Microsoft.EnterpriseCloud.Monitoring'
-            ExtensionType = 'MicrosoftMonitoringAgent'
-            TypeHandlerVersion = '1.0'
-            SettingString = "{'workspaceId': '$($workspace.CustomerId.Guid)'}" 
-            ProtectedSettingString = "{'workspaceKey': '$key'}"
+        $contextChangeNeeded = Set-Context -SubscriptionName $OMSSubscriptionName -Reason "to obtain workspace information"
+        $workspace = Get-AzureRmOperationalInsightsWorkspace -Name $OMSWorkspaceName -ResourceGroupName $OMSResourceGroupName -ErrorAction Stop
+        $key = (Get-AzureRmOperationalInsightsWorkspaceSharedKeys -ResourceGroupName $OMSResourceGroupName -Name $OMSWorkspaceName).PrimarySharedKey
+        if ($contextChangeNeeded) 
+        { 
+            $null = Set-Context -SubscriptionName $VMSubscriptionName -Reason "after obtaining workspace information" 
         }
+    }
 
-        $osType = GetOSType -VM $VM
-        if ($osType -eq 'linux')
-        {
-            $params.ExtensionType = 'OmsAgentForLinux'
-            $params.Publisher = 'Microsoft.EnterpriseCloud.Monitoring'
-            $params.Name = 'OMS'
-        }
+    Process
+    {
+
+        $params = Request-Params -VM $VM -Workspace $workspace -WorkspaceKey $key
 
         if ($PSCmdlet.ShouldProcess($vm.Name, "Register to OMS workspace, $($workspace.name)"))
         {
             $status = $null
 
-            try
+            if (Test-AlreadyConnected -VM $VM)
             {
-                Write-Verbose "Registering VM, $($vm.Name), to the OMS Workspace, $($workspace.Name)"
-                $res = Set-AzureRmVMExtension @params -ErrorAction Stop
-                $res | Format-Table  @{Label="VMName"; Expression={ $vm.Name }}, @{Label="OMSWorkspace"; Expression={ $workspace.Name}}, IsSuccessStatusCode, StatusCode
-                Write-Verbose "Registered VM to workspace successfully"
-                $status = 'Success'
+                Write-Verbose "VM ($($vm.Name) appears to already be connected to an OMS workspace"
             }
-            catch
+            else
             {
-                Write-Verbose "Encountered an error registering the VM ($($vm.Name)) to OMS Workspace ($($workspace.Name))"
-                Write-Error $PSItem.Exception.Message
-                $status = 'Failed'
+                try
+                {
+                    Write-Verbose "Registering VM, $($vm.Name), to the OMS Workspace, $($workspace.Name)"
+                    $res = Set-AzureRmVMExtension @params -ErrorAction Stop
+                    $res | Format-Table  @{Label="VMName"; Expression={ $vm.Name }}, @{Label="OMSWorkspace"; Expression={ $workspace.Name}}, IsSuccessStatusCode, StatusCode
+                    Write-Verbose "Registered VM to workspace successfully"
+                    $status = 'Success'
+                }
+                catch
+                {
+                    Write-Verbose "Encountered an error registering the VM ($($vm.Name)) to OMS Workspace ($($workspace.Name))"
+                    Write-Error $PSItem.Exception.Message
+                    $status = 'Failed'
+                }                
             }
         }
     }
