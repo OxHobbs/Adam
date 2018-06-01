@@ -24,6 +24,14 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+### v0.4.0
+
+* Implemented the external cmdlets: Set-MetricForwardingToOMS and New-MetricEmailAlertRules
+
+### v0.3.0
+
+* Fixed an issue where an empty folder in the module causes failures on importing. 
+
 ### v0.2.0
 
 * Added the ability to specify which subscription the VMs and LA workspace exists.

@@ -98,30 +98,33 @@ function Register-VMToOMS
 
     Process
     {
-
-        $params = Request-Params -VM $VM -Workspace $workspace -WorkspaceKey $key
-
-        if ($PSCmdlet.ShouldProcess($vm.Name, "Register to OMS workspace, $($workspace.name)"))
+        foreach ($v in $vm)
         {
-            $status = $null
+            Write-Verbose "Virtual Machine -> $($v.Name)"
 
-            if (Test-AlreadyConnected -VM $VM)
+            $params = Request-Params -VM $v -Workspace $workspace -WorkspaceKey $key
+
+            if (Test-AlreadyConnected -VM $v)
             {
-                Write-Verbose "VM ($($vm.Name) appears to already be connected to an OMS workspace"
+                Write-Verbose "VM ($($v.Name) appears to already be connected to an OMS workspace"
+                continue
             }
-            else
+
+            if ($PSCmdlet.ShouldProcess($v.Name, "Register to OMS workspace, $($workspace.name)"))
             {
+                $status = $null
+    
                 try
                 {
-                    Write-Verbose "Registering VM, $($vm.Name), to the OMS Workspace, $($workspace.Name)"
+                    Write-Verbose "Registering VM, $($v.Name), to the OMS Workspace, $($workspace.Name)"
                     $res = Set-AzureRmVMExtension @params -ErrorAction Stop
-                    $res | Format-Table  @{Label="VMName"; Expression={ $vm.Name }}, @{Label="OMSWorkspace"; Expression={ $workspace.Name}}, IsSuccessStatusCode, StatusCode
+                    $res | Format-Table  @{Label="VMName"; Expression={ $v.Name }}, @{Label="OMSWorkspace"; Expression={ $workspace.Name}}, IsSuccessStatusCode, StatusCode
                     Write-Verbose "Registered VM to workspace successfully"
                     $status = 'Success'
                 }
                 catch
                 {
-                    Write-Verbose "Encountered an error registering the VM ($($vm.Name)) to OMS Workspace ($($workspace.Name))"
+                    Write-Verbose "Encountered an error registering the VM ($($v.Name)) to OMS Workspace ($($workspace.Name))"
                     Write-Error $PSItem.Exception.Message
                     $status = 'Failed'
                 }                

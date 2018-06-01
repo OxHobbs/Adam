@@ -2,8 +2,9 @@ Function Import-AlertsJson
 {
     param
     (
-        [Parameter(Position=0)]
-        [String] $ConfigFile = 'alert_rules.json'
+        [Parameter(Position = 0)]
+        [String]
+        $ConfigFile = 'alert_rules.json'
     )
 
     begin
