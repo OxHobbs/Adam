@@ -29,13 +29,27 @@ Function New-MetricEmailAlertRules
         foreach ($alert in $Alerts)
         {
             $alertName = "$($alert.Name)__$($vm.Name)"
-            $existingAlerts = Get-AzureRmAlertRule -ResourceGroupName $vm.ResourceGroupName -TargetResourceId $vm.Id
-            if ($existingAlerts.Name -contains $alertName)
+            $existingAlert = Get-AzureRmAlertRule -ResourceGroupName $vm.ResourceGroupName -Name $alertName -ErrorAction SilentlyContinue
+
+            if ($existingAlert)
             {
-                Write-Verbose "Alert ($alertName) already exists for $($vm.Name), moving on out"
-                continue
+                Write-Verbose "Alert ($alertName) already exists for $($vm.Name), validating configuration of alert"
+
+                if (Test-AlertCompliant -CurrentAlert $existingAlert -DesiredAlert $alert)
+                {
+                    Write-Verbose "Alert ($alertName) already exists for $($vm.Name) and is configured correctly, moving on out"
+                    continue
+                }
+                else 
+                {
+                    Write-Verbose "The alert exists but is not currently configured correctly.  Reckon I'll continue..."    
+                }
             }
-            Write-Verbose "The Alert ($alertName) does not exist for the VM ($($vm.Name)) so I reckon I'll create it"
+            else
+            {
+                Write-Verbose "The Alert ($alertName) does not exist for the VM ($($vm.Name)) so I reckon I'll create it"
+            }
+
             
             $actionEmail = New-AzureRmAlertRuleEmail -CustomEmail $alert.Actions.CustomEmails
             $window = $alert.Condition.WindowSize

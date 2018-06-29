@@ -24,6 +24,10 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+### v0.5.0
+
+* Modified New-MetricEmailAlertRules to be more idempotent and update the alert if some key values have changed.
+
 ### v0.4.0
 
 * Implemented the external cmdlets: Set-MetricForwardingToOMS and New-MetricEmailAlertRules
