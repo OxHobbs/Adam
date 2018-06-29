@@ -1,12 +1,21 @@
 <#
 .SYNOPSIS
+Create new Metric Alert rules on virtual machines based off exported alerts from an existing resource.
 
 .DESCRIPTION
+This cmdlet points to a JSON file in the config directory of the module and uses it to configure other virtual machines with like alerts.  It should
+also provide some functonality to update existing alerts for key values; such as, Window Size, Threshold and Email addresses.
+
+The cmdlet supports common parameters like -Verbose -WhatIf -Confirm etc.
 
 .PARAMETER VM
+A Virtual Machine object that is retrieved with Get-AzureRmVM.  This parameter takes these objects from the pipeline as well.  View examples
+for more details.
 
 .EXAMPLE
+This example shows how to create metric alert rules on all VMs in a resource group named 'MyRG'
 
+Get-AzureRmVM -ResourceGroupName MyRG | New-MetricEmailAlertRules -Verbose
 #>
 Function New-MetricEmailAlertRules
 {

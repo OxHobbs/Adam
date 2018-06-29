@@ -1,17 +1,30 @@
 <#
 .SYNOPSIS
+Configure Virtual Machines to forward their diagnostic data to a OMS Workspace
 
 .DESCRIPTION
+This cmdlet will configure Virtual Machines to forward their diagnostic data to a OMS/Log Analytics workspace.
+
+The cmdlet supports common parameters like -Verbose -WhatIf -Confirm etc.
 
 .PARAMETER VM
+A Virtual Machine object that is retrieved with Get-AzureRmVM.  This parameter takes these objects from the pipeline as well.  View examples
+for more details.
 
 .PARAMETER OMSWorkspaceName
+The name of the OMS/LA workspace of which to send the diagnostic data.
 
 .PARAMETER OMSResourceGroupName
+The resource group in which the OMS/LA workspace exists.
 
 .PARAMETER OMSSubscriptionName
+The subscription name in which the OMS/LA workspace exists.
 
 .EXAMPLE
+This example shows how to get all VMs in a resource group named 'MyRG' and configure them to forward diagnostic
+data to a OMS/LA workspace named 'MyOMSWorkspace'
+
+Get-AzureRmVM -ResourceGrouopName MyRG | Set-MetricForwardingToOMS -OMSWorkspaceName MyOMSWorkspace -OMSResourceGroupName OMSResourceGroup -OMSSubscriptionName OMSSubscription -Verbose
 
 #>
 Function Set-MetricForwardingToOMS
