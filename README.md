@@ -24,6 +24,9 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+## v0.6.0
+* Added the Get-SSLCertInfo cmdlet
+
 ### v0.5.0
 
 * Modified New-MetricEmailAlertRules to be more idempotent and update the alert if some key values have changed.
