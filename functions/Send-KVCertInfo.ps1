@@ -103,9 +103,6 @@ function Send-KVCertInfo
 
     $certCollectionJSON = ConvertTo-Json -InputObject $certCollection -Depth 10
 
-    Write-Host "JSON------------------------------------------JSON"
-    $certCollectionJSON
-
     $IngestionParams = @{
         customerId      = $Workspace.CustomerId
         sharedKey       = $WorkspaceKey
@@ -115,7 +112,9 @@ function Send-KVCertInfo
         EnvironmentName = 'AzureUSGovernment'
     }
 
-    Send-OMSAPIIngestionFile @IngestionParams
+    $status = Send-OMSAPIIngestionFile @IngestionParams
+    Write-Verbose "OMSIngestion Status: $status"
+
     $certCollection
 }
 

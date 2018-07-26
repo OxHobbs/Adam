@@ -22,7 +22,6 @@ param
     [Parameter()]
     [String]
     $PartitionKey
-
 )
 
 $conn = Get-AutomationConnection -Name AzureRunAsConnection
@@ -109,6 +108,6 @@ foreach ($o in $formattedObject)
     Add-StorageTableRow -table $storTable `
         -partitionKey $PartitionKey `
         -rowKey ([guid]::NewGuid().tostring()) `
-        -property $tableFields #@{FirstName = 'Austin'; LastName = 'Hobbs'}
+        -property $tableFields
 }
 #endregion
