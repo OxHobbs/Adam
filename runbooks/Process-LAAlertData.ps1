@@ -3,49 +3,112 @@ param
     [Object]
     $WebhookData,
 
+    [Parameter(Mandatory)]
     [String]
-    $StorageAccountName
+    $StorageAccountName,
+
+    [Parameter(Mandatory)]
+    [String]
+    $StorageAccountResourceGroup,
+
+    [Parameter()]
+    [String]
+    $StorageAccountSubscriptionName,
+
+    [Parameter()]
+    [String]
+    $TableName,
+
+    [Parameter()]
+    [String]
+    $PartitionKey
+
 )
 
-$WebhookData
+$conn = Get-AutomationConnection -Name AzureRunAsConnection
+$account = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
-if (-not $webhookData.RequestBody)
-{
-    $webhook = $WebhookData | ConvertFrom-JSON
-    Write-output $webhook
-}
+#region process webhook
 
-$body = ConvertFrom-Json -InputObject $webhookData.RequestBody
-# Write-Output $body
+$hook = ConvertFrom-Json -InputObject $webhookData.RequestBody
+$body = ConvertFrom-Json -InputObject $hook.RequestBody
+
+# $storageAccount = Get-AzureRmStorageAccount -ResourceGroupName $StorageAccountResourceGroup -Name $StorageAccountName
+
 $tables = $body.SearchResult.tables
 
-Write-Output $tables
+if ($tables)
+{
+    # Write-Output $tables
+    Write-Verbose "Found tables"
+}
+else
+{
+    Write-Output "tables is empty"
+    $body.SearchResult
+    $body.SearchResult.tables
+}
 
 $formattedObject = @()
-
-# for ($c, $tables.columns.name, $c++)
-# {
-
-# }
 
 $colNames = $tables.columns.name
 $props = @{}
 
 for ($row = 0; $row -lt $tables.rows.Count; $row++)
 {
-    Write-host "Looking at row $row"
+    Write-Verbose "Looking at row $row"
     $props = @{}
 
     for ($col = 0; $col -lt $colNames.Count; $col++)
     {
-        Write-Host "looking at col $col, row $row"
-        Write-Host "Column Name: $($colNames[$col])"
-        # $props = [Ordered]@{
+        Write-Verbose "looking at col $col, row $row"
+        Write-Verbose "Column Name: $($colNames[$col])"
         $props[$colNames[$col]] = $tables.rows[$row][$col]
     }
 
     $formattedObject += New-Object -TypeName PSObject -Property $props
 }
 
-Write-Output "`n`n------------------------------------`n"
-Write-Output $formattedObject
+$formattedObject
+
+#endregion
+
+#region Storage Table
+
+$saContext = (Get-AzureRmStorageAccount -ResourceGroupName $StorageAccountResourceGroup -Name $StorageAccountName).Context
+$storTable = Get-AzureStorageTable -Name $TableName -Context $saContext -ErrorAction SilentlyContinue
+
+
+if (-not $storTable)
+{
+    $storTable = New-AzureStorageTable -Name $TableName -Context $saContext
+}
+
+Write-Output "Will write data to table $($storTable.Name)"
+
+
+foreach ($o in $formattedObject)
+{
+    [Hashtable] $tableFields = @{}
+    $objectNoteProps = (Get-Member -InputObject $o | Where MemberType -eq 'NoteProperty').Name
+
+    foreach ($noteProp in $objectNoteProps)
+    {
+        if (-not $o.$noteProp)
+        {
+            $tableFields.Add($noteProp, 'Null')
+        }
+        else
+        {
+            $tableFields.Add($noteProp, $o.$noteProp)
+        }
+    }
+
+    Write-Output "$storTable would be populate with these fields`n--------------------------"
+    $tableFields
+    Add-StorageTableRow -table $storTable `
+        -partitionKey $PartitionKey `
+        -rowKey ([guid]::NewGuid().tostring()) `
+        -property $tableFields #@{FirstName = 'Austin'; LastName = 'Hobbs'}
+}
+#endregion
