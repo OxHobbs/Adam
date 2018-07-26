@@ -28,24 +28,15 @@ $conn = Get-AutomationConnection -Name AzureRunAsConnection
 $account = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
 #region process webhook
-
-$hook = ConvertFrom-Json -InputObject $webhookData.RequestBody
-$body = ConvertFrom-Json -InputObject $hook.RequestBody
-
-# $storageAccount = Get-AzureRmStorageAccount -ResourceGroupName $StorageAccountResourceGroup -Name $StorageAccountName
-
+$Body = ConvertFrom-JSON -InputObject $WebhookData.RequestBody
 $tables = $body.SearchResult.tables
 
-if ($tables)
+if (-not $tables)
 {
-    # Write-Output $tables
-    Write-Verbose "Found tables"
-}
-else
-{
-    Write-Output "tables is empty"
+    Write-Output "tables is empty, exiting"
     $body.SearchResult
     $body.SearchResult.tables
+    exit
 }
 
 $formattedObject = @()
@@ -69,10 +60,13 @@ for ($row = 0; $row -lt $tables.rows.Count; $row++)
 }
 
 $formattedObject
-
 #endregion
 
 #region Storage Table
+if ((Get-AzureRmContext).Subscription.Name -ne $StorageAccountSubscriptionName)
+{
+    $null = Select-AzureRmSubscription -Subscription $StorageAccountSubscriptionName
+}
 
 $saContext = (Get-AzureRmStorageAccount -ResourceGroupName $StorageAccountResourceGroup -Name $StorageAccountName).Context
 $storTable = Get-AzureStorageTable -Name $TableName -Context $saContext -ErrorAction SilentlyContinue
@@ -83,8 +77,7 @@ if (-not $storTable)
     $storTable = New-AzureStorageTable -Name $TableName -Context $saContext
 }
 
-Write-Output "Will write data to table $($storTable.Name)"
-
+Write-Verbose "Will write data to table $($storTable.Name)"
 
 foreach ($o in $formattedObject)
 {
@@ -93,17 +86,16 @@ foreach ($o in $formattedObject)
 
     foreach ($noteProp in $objectNoteProps)
     {
-        if (-not $o.$noteProp)
-        {
-            $tableFields.Add($noteProp, 'Null')
-        }
-        else
+        if ($o.$noteProp)
         {
             $tableFields.Add($noteProp, $o.$noteProp)
         }
+        else
+        {
+            $tableFields.Add($noteProp, '')
+        }
     }
 
-    Write-Output "$storTable would be populate with these fields`n--------------------------"
     $tableFields
     Add-StorageTableRow -table $storTable `
         -partitionKey $PartitionKey `

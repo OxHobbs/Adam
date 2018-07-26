@@ -14,7 +14,7 @@ function Send-KVCertInfo
 
         [Parameter()]
         [String]
-        $VaultSubscriptionName = (Get-AzureRmContext).Subscription.Name,
+        $VaultSubscriptionName,
 
         [Parameter(Mandatory)]
         [String]
@@ -26,7 +26,7 @@ function Send-KVCertInfo
 
         [Parameter()]
         [String]
-        $LogAnalyticsSubscriptionName = $VaultSubscriptionName,
+        $LogAnalyticsSubscriptionName,
 
         [Parameter()]
         [Int]
