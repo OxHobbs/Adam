@@ -115,7 +115,7 @@ function Send-KVCertInfoToLA
     $WorkspaceKey = Get-WorkspaceKey -WorkspaceName $LogAnalyticsWorkspaceName -ResourceGroupName $LogAnalyticsResourceGroup -SubscriptionName $LogAnalyticsSubscriptionName
     Write-Verbose "Found the workspace key"
 
-    Set-Context -SubscriptionName $VaultSubscriptionName -Reason "set to Vault Sub to get certificate data"
+    $null = Set-Context -SubscriptionName $VaultSubscriptionName -Reason "set to Vault Sub to get certificate data"
     $ExtractDate = Get-Date -Format "yyyyMMdd hh:mm:ss"
 
     foreach ($certificate in $certificates)

@@ -63,4 +63,4 @@ $params = @{
     ValidTags                    = $ValidTags
 }
 
-Send-KVCertInfo @params
+Send-KVCertInfoToLA @params
