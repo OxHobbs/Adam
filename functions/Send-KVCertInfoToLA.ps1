@@ -38,7 +38,7 @@ expiring within the next 90 days will be forwarded to Log Analytics.
 
 Send-KVCertInfo -VaultResourceGroup django -VaultName django-keyvault -LogAnalyticsWorkspaceName webapp-workspace -Verbose -LogAnalyticsResourceGroup django-webapps -ExpirationThresholdDays 90
 #>
-function Send-KVCertInfo
+function Send-KVCertInfoToLA
 {
     [CmdletBinding()]
 
