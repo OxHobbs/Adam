@@ -1,8 +1,8 @@
-# IAM Module ReadMe
+# AzureMon Module ReadMe
 
 ## Description
 
-This module contains a collection of tools that are used to aid in management of the IAM environment.  Semantic versioning is used in this project and a lite changelog is kept towards the bottom of this readme file.
+This module contains a collection of tools that are used to aid in management of an Azure Monitoring environment.  Semantic versioning is used in this project and a lite changelog is kept towards the bottom of this readme file.
 
 Normal PowerShell commands may be used to interact with this module. Install this module from your NuGet server or copy the module to the following directory
 `%ProgramFiles%/WindowsPowerShell/Modules`
@@ -10,13 +10,13 @@ Normal PowerShell commands may be used to interact with this module. Install thi
 To view all cmdlets available in this module run the following:
 
 ```powershell
-Import-Module IAM
-Get-Command -Module IAM
+Import-Module AzureMon
+Get-Command -Module AzureMon
 ```
 You may also use the help functionality with the cmdlets...
 
 ```powershell
-Import-Module IAM
+Import-Module AzureMon
 Get-Help Register-VMToOMS -Full
 ```
 
@@ -24,6 +24,9 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+### v1.0.0
+
+* Renamed and released module as `AzureMon`
 
 ### v0.9.0
 
