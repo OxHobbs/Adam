@@ -24,13 +24,21 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+
+### v0.9.0
+
+* Added Register-VMToOMS runbook
+
 ### v0.8.1
+
 * Fixed an output issue in Send-KVCertInfoToLA
   
 ### v0.8.0
+
 * Added the cmdlet Send-KVCertInfoToLA to send Key Vault metadata to Log Analytics
 
 ### v0.6.0
+
 * Added the Get-SSLCertInfo cmdlet
 
 ### v0.5.0
