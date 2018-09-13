@@ -1,4 +1,4 @@
-<# v0.1.0
+<# v1.0.0
 .SYNOPSIS 
 Create metric alerts for a given VM or set of VMs.
 
@@ -24,19 +24,28 @@ param
     $ResourceGroupName,
 
     [Parameter()]
-    [String]
-    $VMName
+    [String[]]
+    $VMNames
 )
 
 $conn = Get-AutomationConnection -Name AzureRunAsConnection
 $account = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
-if ($VMName)
+Import-Module AzureMon -MinimumVersion '2.0.1'
+
+$onVMs = @()
+$offVMs = @()
+
+if ($VMNames)
 {
-    $vms = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName
-    $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
-    if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms = $vms }
-    else { $offVMs = $vms }
+    foreach ($vmName in $VMNames)
+    {
+        Write-Verbose "Grabbing $vmName"
+        $vm = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName
+        $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
+        if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms += $vm }
+        else { $offVMs += $vm }
+    }
 }
 else
 {
@@ -53,7 +62,10 @@ foreach ($offVM in $offVMs)
 
 if ($onVms)
 {
-    New-MetricEmailAlertRules -VM $onVms
+    $onWindowsVMs = $onVms | Where { (Get-OSType -VM $_) -eq 'Windows' }
+    $onLinuxVMs = $onVms | Where { (Get-OSType -VM $_) -eq 'Linux' }
+    if ($onWindowsVMs) { New-MetricEmailAlertRules -VM $onWindowsVMs -OSType Windows }
+    if ($onLinuxVMs) { New-MetricEmailAlertRules -VM $onLinuxVMs -OSType Linux }
 }
 else 
 {

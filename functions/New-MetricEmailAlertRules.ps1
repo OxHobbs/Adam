@@ -25,12 +25,26 @@ Function New-MetricEmailAlertRules
     (
         [Parameter(Mandatory, ValueFromPipeline = $true)]
         [Microsoft.Azure.Commands.Compute.Models.PSVirtualMachine[]]
-        $VM
+        $VM,
+
+        [Parameter(Mandatory)]
+        [ValidateSet('Windows', 'Linux')]
+        [String]
+        $OSType
     )
 
     Begin
     {
-        $Alerts = Import-AlertsJson
+        Write-Verbose "OS Selected - $OSType"
+        $Alerts = if ($OSType -eq 'Windows')
+        {
+            Import-AlertsJson -ConfigFile 'alerts_windows.json'
+        }
+        else
+        {
+            Import-AlertsJson -ConfigFile 'alerts_linux.json'
+        }
+        Write-Verbose "Found $($Alerts.Count) Alerts"
     }
 
     Process
@@ -68,7 +82,7 @@ Function New-MetricEmailAlertRules
                 ResourceGroupName       = $vm.ResourceGroupName
                 TargetResourceId        = $vm.Id
                 Name                    = $alertName
-                WindowSize              = (New-TimeSpan -Days $window.Days -Minutes $window.Minutes -Seconds $window.Seconds)
+                WindowSize              = (New-TimeSpan -Days $window.Days -Minutes $window.Minutes -Seconds $window.Seconds -Hours $window.Hours)
                 Operator                = (Get-OperatorType -OperatorProperty $alert.Condition.OperatorProperty)
                 Threshold               = $alert.Condition.Threshold
                 TimeAggregationOperator = (Get-TimeAggregationType -TimeAggregation $alert.Condition.TimeAggregation)

@@ -4,7 +4,7 @@ Function Import-AlertsJson
     (
         [Parameter(Position = 0)]
         [String]
-        $ConfigFile = 'alert_rules.json'
+        $ConfigFile = 'alerts_windows.json'
     )
 
     begin
