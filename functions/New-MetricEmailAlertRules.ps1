@@ -49,53 +49,56 @@ Function New-MetricEmailAlertRules
 
     Process
     {
-        foreach ($alert in $Alerts)
+        foreach ($v in $vm)
         {
-            $alertName = "$($alert.Name)__$($vm.Name)"
-            $existingAlert = Get-AzureRmAlertRule -ResourceGroupName $vm.ResourceGroupName -Name $alertName -ErrorAction SilentlyContinue
-
-            if ($existingAlert)
+            foreach ($alert in $Alerts)
             {
-                Write-Verbose "Alert ($alertName) already exists for $($vm.Name), validating configuration of alert"
+                $alertName = "$($alert.Name)__$($v.Name)"
+                $existingAlert = Get-AzureRmAlertRule -ResourceGroupName $v.ResourceGroupName -Name $alertName -ErrorAction SilentlyContinue
 
-                if (Test-AlertCompliant -CurrentAlert $existingAlert -DesiredAlert $alert)
+                if ($existingAlert)
                 {
-                    Write-Verbose "Alert ($alertName) already exists for $($vm.Name) and is configured correctly, moving on out"
-                    continue
-                }
-                else 
-                {
-                    Write-Verbose "The alert exists but is not currently configured correctly.  Reckon I'll continue..."    
-                }
-            }
-            else
-            {
-                Write-Verbose "The Alert ($alertName) does not exist for the VM ($($vm.Name)) so I reckon I'll create it"
-            }
+                    Write-Verbose "Alert ($alertName) already exists for $($v.Name), validating configuration of alert"
 
-            
-            $actionEmail = New-AzureRmAlertRuleEmail -CustomEmail $alert.Actions.CustomEmails
-            $window = $alert.Condition.WindowSize
-    
-            $params = @{
-                Location                = $alert.Location
-                ResourceGroupName       = $vm.ResourceGroupName
-                TargetResourceId        = $vm.Id
-                Name                    = $alertName
-                WindowSize              = (New-TimeSpan -Days $window.Days -Minutes $window.Minutes -Seconds $window.Seconds -Hours $window.Hours)
-                Operator                = (Get-OperatorType -OperatorProperty $alert.Condition.OperatorProperty)
-                Threshold               = $alert.Condition.Threshold
-                TimeAggregationOperator = (Get-TimeAggregationType -TimeAggregation $alert.Condition.TimeAggregation)
-                MetricName              = $alert.Condition.DataSource.MetricName
-                Action                  = $actionEmail
-            }
-    
-            if ($alert.Description) { $params['Description'] = $alert.Description }
-    
-            if ($PSCmdlet.ShouldProcess($vm.Name, "Create email metric alert for metric ($($params['Name']))"))
-            {
-                Add-AzureRmMetricAlertRule @params
-            }
+                    if (Test-AlertCompliant -CurrentAlert $existingAlert -DesiredAlert $alert)
+                    {
+                        Write-Verbose "Alert ($alertName) already exists for $($v.Name) and is configured correctly, moving on out"
+                        continue
+                    }
+                    else 
+                    {
+                        Write-Verbose "The alert exists but is not currently configured correctly.  Reckon I'll continue..."    
+                    }
+                }
+                else
+                {
+                    Write-Verbose "The Alert ($alertName) does not exist for the VM ($($v.Name)) so I reckon I'll create it"
+                }
+
+                
+                $actionEmail = New-AzureRmAlertRuleEmail -CustomEmail $alert.Actions.CustomEmails
+                $window = $alert.Condition.WindowSize
+        
+                $params = @{
+                    Location                = $alert.Location
+                    ResourceGroupName       = $v.ResourceGroupName
+                    TargetResourceId        = $v.Id
+                    Name                    = $alertName
+                    WindowSize              = (New-TimeSpan -Days $window.Days -Minutes $window.Minutes -Seconds $window.Seconds -Hours $window.Hours)
+                    Operator                = (Get-OperatorType -OperatorProperty $alert.Condition.OperatorProperty)
+                    Threshold               = $alert.Condition.Threshold
+                    TimeAggregationOperator = (Get-TimeAggregationType -TimeAggregation $alert.Condition.TimeAggregation)
+                    MetricName              = $alert.Condition.DataSource.MetricName
+                    Action                  = $actionEmail
+                }
+        
+                if ($alert.Description) { $params['Description'] = $alert.Description }
+        
+                if ($PSCmdlet.ShouldProcess($v.Name, "Create email metric alert for metric ($($params['Name']))"))
+                {
+                    Add-AzureRmMetricAlertRule @params
+                }
+            }            
         }
     }
 

@@ -31,7 +31,7 @@ param
 $conn = Get-AutomationConnection -Name AzureRunAsConnection
 $account = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
-Import-Module AzureMon -MinimumVersion '2.0.1'
+Import-Module AzureMon -MinimumVersion '2.1.0'
 
 $onVMs = @()
 $offVMs = @()
