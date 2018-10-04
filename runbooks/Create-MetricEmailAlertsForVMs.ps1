@@ -1,4 +1,4 @@
-<# v1.0.0
+<# v1.1.1
 .SYNOPSIS 
 Create metric alerts for a given VM or set of VMs.
 
@@ -13,6 +13,9 @@ new metric alerts created.
 .PARAMETER ResourceGroupName
 Specify the name of the resource group in which the VM(s) exists.
 
+.PARAMETER SubscriptionName
+[Optional] Specify the name of the subscription in which the VMs exist.
+
 .PARAMETER VMName
 Optionally specify the name of a single VM for which to create Metric Alerts
 #>
@@ -25,13 +28,23 @@ param
 
     [Parameter()]
     [String[]]
-    $VMNames
+    $VMNames,
+
+    [Parameter()]
+    [String]
+    $SubscriptionName
 )
 
 $conn = Get-AutomationConnection -Name AzureRunAsConnection
 $account = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
-Import-Module AzureMon -MinimumVersion '2.1.0'
+Import-Module AzureMon -MinimumVersion '2.2.1'
+
+if ($SubscriptionName)
+{
+    $sub = Get-AzureRmSubscription -SubscriptionName $SubscriptionName
+    Select-AzureRmSubscription -SubscriptionObject $sub
+}
 
 $onVMs = @()
 $offVMs = @()
@@ -41,10 +54,19 @@ if ($VMNames)
     foreach ($vmName in $VMNames)
     {
         Write-Verbose "Grabbing $vmName"
-        $vm = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName
-        $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
-        if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms += $vm }
-        else { $offVMs += $vm }
+        try
+        {
+            $vm = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -ErrorAction Stop
+            $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
+            if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms += $vm }
+            else { $offVMs += $vm }            
+        }
+        catch
+        {
+            Write-Error "Error grabbing VM - $vmName"
+            Write-Error $_.Exception.ToString()
+            continue
+        }
     }
 }
 else
@@ -64,8 +86,25 @@ if ($onVms)
 {
     $onWindowsVMs = $onVms | Where { (Get-OSType -VM $_) -eq 'Windows' }
     $onLinuxVMs = $onVms | Where { (Get-OSType -VM $_) -eq 'Linux' }
-    if ($onWindowsVMs) { New-MetricEmailAlertRules -VM $onWindowsVMs -OSType Windows }
-    if ($onLinuxVMs) { New-MetricEmailAlertRules -VM $onLinuxVMs -OSType Linux }
+
+    $windowsParams = @{
+        VM     = $onWindowsVMs
+        OSType = 'Windows'
+    }
+
+    $linuxParams = @{
+        VM     = $onLinuxVMs
+        OSType = 'Linux'
+    }
+
+    if ($SubscriptionName)
+    {
+        $windowsParams['SubscriptionName'] = $SubscriptionName
+        $linuxParams['SubscriptionName'] = $SubscriptionName
+    }
+
+    if ($onWindowsVMs) { New-MetricEmailAlertRules @windowsParams }
+    if ($onLinuxVMs) { New-MetricEmailAlertRules @linuxParams }
 }
 else 
 {

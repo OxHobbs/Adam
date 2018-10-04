@@ -1,4 +1,4 @@
-<# v1.0.0
+<# v1.1.1
 .SYNOPSIS
 This runbook will enable guest-level 'advanced' metrics on a specified list of VMs.
 
@@ -21,6 +21,9 @@ The name of the storage account in which the VMs will store advanced metrics
 
 .PARAMETER StorageAccountResourceGroup
 [Optional] The name of the resource group in which the storage account resides.  If left blank, the VM Resource Group will be used.
+
+.PARAMETER SubscriptionName
+[Optional] Specify the name of the subscription in which the VMs exist.
 
 .PARAMETER Force
 [Optional] Enabled enforcement if you want to overwrite existing settings for the Diagnostic Extension.
@@ -45,6 +48,10 @@ param
     $VMNames,
 
     [Parameter()]
+    [String]
+    $SubscriptionName,
+
+    [Parameter()]
     [Bool]
     $Force = $False
 )
@@ -52,11 +59,17 @@ param
 $conn = Get-AutomationConnection -Name AzureRunAsConnection
 $null = Add-AzureRMAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationID $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint -EnvironmentName AzureUSGovernment
 
-Import-Module AzureMon -MinimumVersion '2.2.0'
+Import-Module AzureMon -MinimumVersion '2.2.1'
 
 if (-not $StorageAccountResourceGroup)
 {
     $StorageAccountResourceGroup = $ResourceGroupName
+}
+
+if ($SubscriptionName)
+{
+    $sub = Get-AzureRmSubscription -SubscriptionName $SubscriptionName
+    Select-AzureRmSubscription -SubscriptionObject $sub
 }
 
 $onVMs = @()
@@ -67,10 +80,20 @@ if ($VMNames)
     foreach ($vmName in $VMNames)
     {
         Write-Verbose "Grabbing $vmName"
-        $vm = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName
-        $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
-        if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms += $vm }
-        else { $offVMs += $vm }
+
+        try
+        {
+            $vm = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName
+            $vmsStatus = Get-AzureRmVM -ResourceGroupName $ResourceGroupName -Name $VMName -Status
+            if ($vmsStatus.Statuses[1].DisplayStatus -eq 'VM running') { $onVms += $vm }
+            else { $offVMs += $vm }
+        }
+        catch
+        {
+            Write-Error "Error grabbing VM - $vmName"
+            Write-Error $_.Exception.ToString()
+            continue
+        }
     }
 }
 else
@@ -96,6 +119,7 @@ if ($onVms)
         StorageAccountResourceGroup = $StorageAccountResourceGroup
     }
 
+    if ($SubscriptionName) { $params['SubscriptionName'] = $SubscriptionName }
     if ($Force) { $params['Force'] = $true }
 
     if ($onWindowsVMs)

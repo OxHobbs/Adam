@@ -30,7 +30,11 @@ Function New-MetricEmailAlertRules
         [Parameter(Mandatory)]
         [ValidateSet('Windows', 'Linux')]
         [String]
-        $OSType
+        $OSType,
+
+        [Parameter()]
+        [String]
+        $SubscriptionName
     )
 
     Begin
@@ -45,6 +49,11 @@ Function New-MetricEmailAlertRules
             Import-AlertsJson -ConfigFile 'alerts_linux.json'
         }
         Write-Verbose "Found $($Alerts.Count) Alerts"
+
+        if ($SubscriptionName)
+        {
+            $null = Set-Context -SubscriptionName $SubscriptionName -Reason "to pull a list of VMs"
+        }
     }
 
     Process
@@ -91,7 +100,7 @@ Function New-MetricEmailAlertRules
                     MetricName              = $alert.Condition.DataSource.MetricName
                     Action                  = $actionEmail
                 }
-        
+
                 if ($alert.Description) { $params['Description'] = $alert.Description }
         
                 if ($PSCmdlet.ShouldProcess($v.Name, "Create email metric alert for metric ($($params['Name']))"))

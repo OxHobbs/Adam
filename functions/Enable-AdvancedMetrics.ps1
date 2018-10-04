@@ -22,11 +22,21 @@ function Enable-AdvancedMetrics
         $OSType,
 
         [Parameter()]
+        [String]
+        $SubscriptionName,
+
+        [Parameter()]
         [Switch]
         $Force
     )
 
-    Begin {}
+    Begin 
+    {
+        if ($SubscriptionName)
+        {
+            $null = Set-Context -SubscriptionName $SubscriptionName -Reason "to pull list of VMs"
+        }
+    }
 
     Process
     {
