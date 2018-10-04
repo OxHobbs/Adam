@@ -24,6 +24,10 @@ __note:__ This document gives an overview of changes that are made within releas
 for a detailed view of what changes have happened within the module, refer
 to the source code repository in the VCS.
 
+### v2.2.2
+
+* Updated the ExtracyDate field to use 24 hour time.
+
 ### v1.0.0
 
 * Renamed and released module as `AzureMon`
